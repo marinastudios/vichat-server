@@ -4,9 +4,8 @@ import { mongoose } from "@lucia-auth/adapter-mongoose";
 import * as models from "./db";
 import { sveltekit } from "lucia/middleware";
 import { dev } from "$app/environment";
-import { error, type Handle, type RequestEvent } from "@sveltejs/kit";
+import { error, type Handle } from "@sveltejs/kit";
 import type { LayoutServerLoad } from '../../routes/$types';
-
 
 const auth = lucia({
     adapter: mongoose(models),
@@ -35,48 +34,25 @@ export function hooks(): Handle {
     }
 }
 
-// export function layout(): LayoutServerLoad {
-//     return async (request) => {
-//         const { locals } = request
-//         const lucia = await locals.auth.basic.validateUser()
-//         return {
-//             user: await lucia.user,
-//             session: lucia.session?.sessionId,
-//             pathname: request.url.pathname
-//         }
-//     }
-// }
-
-// function handleHeaders(event: RequestEvent, header: string): HeaderAuthRequest {
-//     let validatePromise: Promise<Session | null> | null = null
-//     return {
-//         validate() {
-//             if(!validatePromise) {
-//                 validatePromise = new Promise(async (resolve) => {
-//                     const sessionId = event.request.headers.get(header)?.replace("Bearer ", "");
-//                     if((!sessionId) || sessionId.length === 0) {
-//                         return resolve(null)
-//                     }
-//                     try {
-//                         const session = await auth.validateSession(sessionId)
-//                         return resolve(session)
-//                     } catch {
-//                         return resolve(null)
-//                     }
-//                 })
-//             }
-//             return validatePromise
-//         }
-//     }
-// }
-
-type HeaderAuthRequest = {
-    validate(): Promise<Session | null>
+export function layout(): LayoutServerLoad {
+    return async (request) => {
+        const { locals } = request
+        const lucia = await locals.auth.validate();
+        if(!lucia) {
+            return {
+                pathname: request.url.pathname
+            }
+        }
+        return {
+            user: await lucia.user,
+            session: lucia.session?.sessionId,
+            pathname: request.url.pathname
+        }
+    }
 }
 
 export default auth;
 export {
     auth,
-    type Auth,
-    type HeaderAuthRequest
+    type Auth
 }
